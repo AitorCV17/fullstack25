@@ -89,6 +89,9 @@ const deleteCharacter = (characterId: number) => {
 };
 
 const filteredCharacters = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return characters.value;
+  }
   return characters.value.filter((character) =>
       character.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       character.status.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -101,7 +104,14 @@ const filteredCharacters = computed(() => {
   <v-container fluid>
     <v-row>
       <v-col cols="12" md="6">
-        <v-text-field v-model="searchQuery" label="Buscar personaje..." prepend-inner-icon="mdi-magnify" clearable></v-text-field>
+        <v-text-field
+            v-model="searchQuery"
+            label="Buscar personaje..."
+            prepend-inner-icon="mdi-magnify"
+            clearable
+            @update:modelValue="searchQuery = $event"
+            @click:clear="searchQuery = ''"
+        />
       </v-col>
       <v-col class="text-right">
         <v-btn size="large" prepend-icon="mdi-plus" color="#1481ff" variant="tonal" @click="openCreateModal">
@@ -143,8 +153,5 @@ const filteredCharacters = computed(() => {
         </v-card>
       </v-col>
     </v-row>
-    <v-alert v-if="filteredCharacters.length === 0" type="info" class="mt-4">
-      No se encontraron personajes.
-    </v-alert>
   </v-container>
 </template>
