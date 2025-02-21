@@ -105,6 +105,7 @@ const filteredCharacters = computed(() => {
     <v-row>
       <v-col cols="12" md="6">
         <v-text-field
+            variant="solo"
             v-model="searchQuery"
             label="Buscar personaje..."
             prepend-inner-icon="mdi-magnify"
