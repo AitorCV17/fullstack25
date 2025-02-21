@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useFetch } from "#imports";
 
 export interface Character {
@@ -26,6 +26,7 @@ export interface Result {
 const dialog = ref(false);
 const editingCharacter = ref(false);
 const characters = ref<Result[]>([]);
+const searchQuery = ref("");
 
 const newCharacter = ref<Result>({
   id: 0,
@@ -86,11 +87,22 @@ const editCharacter = (character: Result) => {
 const deleteCharacter = (characterId: number) => {
   characters.value = characters.value.filter(character => character.id !== characterId);
 };
+
+const filteredCharacters = computed(() => {
+  return characters.value.filter((character) =>
+      character.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      character.status.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      character.species.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
 </script>
 
 <template>
   <v-container fluid>
     <v-row>
+      <v-col cols="12" md="6">
+        <v-text-field v-model="searchQuery" label="Buscar personaje..." prepend-inner-icon="mdi-magnify" clearable></v-text-field>
+      </v-col>
       <v-col class="text-right">
         <v-btn size="large" prepend-icon="mdi-plus" color="#1481ff" variant="tonal" @click="openCreateModal">
           Crear
@@ -118,7 +130,7 @@ const deleteCharacter = (characterId: number) => {
 
   <v-container fluid>
     <v-row>
-      <v-col v-for="item in characters" :key="item.id" cols="12" md="4">
+      <v-col v-for="item in filteredCharacters" :key="item.id" cols="12" md="4">
         <v-card class="mx-auto" max-width="344">
           <v-img height="200px" :src="item.image || 'https://via.placeholder.com/200'" cover></v-img>
           <v-card-title>{{ item.name }}</v-card-title>
@@ -131,5 +143,8 @@ const deleteCharacter = (characterId: number) => {
         </v-card>
       </v-col>
     </v-row>
+    <v-alert v-if="filteredCharacters.length === 0" type="info" class="mt-4">
+      No se encontraron personajes.
+    </v-alert>
   </v-container>
 </template>
