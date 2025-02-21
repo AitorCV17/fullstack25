@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { VListItemSubtitle } from 'vuetify/components';
+import { ref, onMounted } from "vue";
+import { useFetch } from "#imports";
 
 export interface Character {
   info: Info;
@@ -18,71 +19,117 @@ export interface Result {
   name: string;
   status: string;
   species: string;
-  type: string;
   gender: string;
-  origin: Location;
-  location: Location;
   image: string;
-  episode: string[];
-  url: string;
-  created: Date;
 }
 
+const dialog = ref(false);
+const editingCharacter = ref(false);
+const characters = ref<Result[]>([]);
 
-const { data } = await useFetch<Character>('https://rickandmortyapi.com/api/character')
+const newCharacter = ref<Result>({
+  id: 0,
+  name: "",
+  status: "",
+  species: "",
+  gender: "",
+  image: "",
+});
 
+const openCreateModal = () => {
+  editingCharacter.value = false;
+  newCharacter.value = {
+    id: 0,
+    name: "",
+    status: "",
+    species: "",
+    gender: "",
+    image: "",
+  };
+  dialog.value = true;
+};
+
+const saveCharacter = () => {
+  if (!newCharacter.value.name || !newCharacter.value.status || !newCharacter.value.species) return;
+
+  if (editingCharacter.value) {
+    const index = characters.value.findIndex(c => c.id === newCharacter.value.id);
+    if (index !== -1) {
+      characters.value[index] = { ...newCharacter.value };
+    }
+  } else {
+    const newId = characters.value.length ? Math.max(...characters.value.map(c => c.id)) + 1 : 1;
+    characters.value.push({ ...newCharacter.value, id: newId });
+  }
+
+  dialog.value = false;
+};
+
+const { data } = await useFetch<Character>("https://rickandmortyapi.com/api/character");
+
+onMounted(() => {
+  if (data.value?.results) {
+    characters.value = data.value.results;
+  }
+});
+
+const exploreCharacter = (character: Result) => {
+  alert(`Explorando a ${character.name}: ${character.species} - ${character.status}`);
+};
+
+const editCharacter = (character: Result) => {
+  newCharacter.value = { ...character };
+  editingCharacter.value = true;
+  dialog.value = true;
+};
+
+const deleteCharacter = (characterId: number) => {
+  characters.value = characters.value.filter(character => character.id !== characterId);
+};
 </script>
+
 <template>
   <v-container fluid>
-    <div >
-      <v-row>
-        <v-col v-for="item in data?.results" :key="item.id">
-          <v-card class="mx-auto" max-width="344">
-            <v-img height="200px" :src="item.image" cover></v-img>
+    <v-row>
+      <v-col class="text-right">
+        <v-btn size="large" prepend-icon="mdi-plus" color="#1481ff" variant="tonal" @click="openCreateModal">
+          Crear
+        </v-btn>
+      </v-col>
+    </v-row>
 
-            <v-card-title>
-              {{ item.name }}
-            </v-card-title>
-
-            <v-card-subtitle>
-              1,000 miles of wonder
-            </v-card-subtitle>
-
-            <v-card-actions>
-              <v-btn color="orange-lighten-2" text="Explore"></v-btn>
-
-              <v-spacer></v-spacer>
-
-              <!-- <v-btn :icon="show ? 'mdi-chevron-up' : 'mdi-chevron-down'" @click="show = !show"></v-btn> -->
-            </v-card-actions>
-
-            <v-expand-transition>
-              <div v-show="false">
-                <v-divider></v-divider>
-
-                <v-card-text>
-                  I'm a thing. But, like most politicians, he promised more than he could deliver. You won't have time
-                  for
-                  sleeping, soldier, not with all the bed making you'll be doing. Then we'll go with that data file!
-                  Hey,
-                  you
-                  add a one and two zeros to that or we walk! You're going to do his laundry? I've got to find a way to
-                  escape.
-                </v-card-text>
-              </div>
-            </v-expand-transition>
-          </v-card>
-        </v-col>
-      </v-row>
-
-    </div>
-    <!-- {{ data?.results }} -->
-
-
-    <v-btn>Hello</v-btn>
-
-    <VBtn>Hola</VBtn>
-
+    <v-dialog v-model="dialog" max-width="400px">
+      <v-card>
+        <v-card-title>{{ editingCharacter ? "Editar Personaje" : "Crear Nuevo Personaje" }}</v-card-title>
+        <v-card-text>
+          <v-text-field v-model="newCharacter.name" label="Nombre"></v-text-field>
+          <v-select v-model="newCharacter.status" :items="['Alive', 'Dead', 'Unknown']" label="Estado"></v-select>
+          <v-text-field v-model="newCharacter.species" label="Especie"></v-text-field>
+          <v-select v-model="newCharacter.gender" :items="['Male', 'Female', 'Unknown']" label="Género"></v-select>
+          <v-text-field v-model="newCharacter.image" label="URL de Imagen"></v-text-field>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn color="red" variant="tonal" @click="dialog = false">Cancelar</v-btn>
+          <v-btn color="green" variant="tonal" @click="saveCharacter">{{ editingCharacter ? "Actualizar" : "Guardar" }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 
+  <v-container fluid>
+    <v-row>
+      <v-col v-for="item in characters" :key="item.id" cols="12" md="4">
+        <v-card class="mx-auto" max-width="344">
+          <v-img height="200px" :src="item.image || 'https://via.placeholder.com/200'" cover></v-img>
+          <v-card-title>{{ item.name }}</v-card-title>
+          <v-card-subtitle>{{ item.species }} - {{ item.status }}</v-card-subtitle>
+          <v-card-actions>
+            <v-btn color="orange-lighten-2" @click="exploreCharacter(item)">Explorar</v-btn>
+            <v-btn color="#4ea9ff" @click="editCharacter(item)">Editar</v-btn>
+            <v-btn color="red-darken-2" @click="deleteCharacter(item.id)">Eliminar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
